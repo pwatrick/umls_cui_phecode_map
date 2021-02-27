@@ -1,0 +1,56 @@
+---
+title: "cui_phecode_map_20210227"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+author: **Patrick Wu**  
+
+# Saturday, 2021-02-27
+## Aim: Get mapping of UMLS CUIs to phecodes
+
+### Data sources:  
+
+"mrconso_2018aa_cui_icd10cm.csv":  
+
+  - From 2018AA UMLS, see "https://download.nlm.nih.gov/umls/kss/2018AA/umls-2018AA-full.zip".  
+  - UMLS CUIs for ICD-10-CM codes.  
+  - Relevant columns: c("CUI", "SAB", "CODE").  
+  
+"Phecode Map 1.2 with ICD-10-CM Codes (beta)" can be found in the PheWAS R package (`PheWAS::phecode_map`).  
+
+  - The map can also be downloaded at "https://phewascatalog.org/phecodes_icd10cm".  
+  
+  
+### Import packages
+```{r}
+#Import libraries
+suppressPackageStartupMessages({
+  library(glue); 
+  library(tidyverse);
+  library(vroom)
+}) 
+set.seed(1)
+PATH <- "../data/"
+```
+
+### Map phecodes to UMLS CUIs using ICD-10-CM map
+```{r}
+#Import UMLS MRCONSO 2018AA ICD10CMs
+icd10cm_cui <- vroom(glue("{PATH}mrconso_2018aa_cui_icd10cm.csv"), delim = ",", .name_repair = janitor::make_clean_names) %>% 
+  select(cui, sab, code) %>% 
+  distinct()
+
+#Get ICD10CM to phecode map
+icd10cm_phecode <- PheWAS::phecode_map %>% 
+  filter(vocabulary_id == "ICD10CM")
+
+#Inner join
+cui_phecode <- inner_join(icd10cm_cui, icd10cm_phecode, by = "code") %>% 
+  select(cui, vocabulary_id, code, phecode)
+
+#Export to csv
+write_csv(cui_phecode, glue("{PATH}umls_cui_phecode_mappings.csv"))
+```
+
+
